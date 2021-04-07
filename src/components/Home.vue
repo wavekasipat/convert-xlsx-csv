@@ -10,11 +10,13 @@
       <el-upload
         class="upload-demo"
         action="https://jsonplaceholder.typicode.com/posts/"
-        :on-success="handleSuccess"
+        :on-change="handleChange"
         :on-remove="handleRemove"
         :limit="1"
-        :file-list="fileList"
         :multiple="false"
+        accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+        :auto-upload="false"
+        ref="upload"
       >
         <el-button size="small" type="primary">Click to upload</el-button>
         <template #tip>
@@ -23,26 +25,56 @@
       </el-upload>
       <br />
 
-      <el-button type="success">Download CSV</el-button>
+      <a v-if="file" v-bind:href="csv" v-bind:download="csvName"
+        ><el-button type="success">Download CSV</el-button></a
+      >
     </el-card>
   </div>
 </template>
 
 <script>
+const XLSX = require("xlsx");
+
+function readFileAsync(file) {
+  return new Promise((resolve, reject) => {
+    let reader = new FileReader();
+    reader.onload = () => {
+      resolve(reader.result);
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 export default {
   name: "Home",
   props: {},
   data() {
     return {
-      fileList: [],
+      file: null,
+      csv: null,
+      csvName: null,
     };
   },
   methods: {
     handleRemove(file, fileList) {
       console.log(file, fileList);
+      this.file = null;
     },
-    handleSuccess(response, file, fileList) {
-      console.log(response, file, fileList);
+    async handleChange(file, fileList) {
+      console.log(file, fileList);
+      this.file = file;
+      this.csvName = file.name.replace(".xlsx", ".csv").replace(".xls", ".csv");
+
+      let contentBuffer = await readFileAsync(file.raw);
+      console.log("contentBuffer", contentBuffer);
+      let data = new Uint8Array(contentBuffer);
+      let workbook = XLSX.read(data, { type: "array" });
+      let csvText = XLSX.utils.sheet_to_csv(
+        workbook.Sheets[workbook.SheetNames[0]]
+      );
+      console.log(csvText);
+      this.csv = "data:text/csv;charset=utf-8," + csvText;
     },
   },
 };
@@ -57,5 +89,9 @@ export default {
 }
 .box-card {
   width: 480px;
+}
+h2 {
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 </style>
