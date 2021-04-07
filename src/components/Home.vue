@@ -12,11 +12,13 @@
         action="https://jsonplaceholder.typicode.com/posts/"
         :on-change="handleChange"
         :on-remove="handleRemove"
-        :limit="1"
+        :limit="2"
         :multiple="false"
         accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
         :auto-upload="false"
         ref="upload"
+        :on-exceed="handleExceed"
+        :file-list="fileList"
       >
         <el-button size="small" type="primary">Click to upload</el-button>
         <template #tip>
@@ -25,7 +27,7 @@
       </el-upload>
       <br />
 
-      <a v-if="file" v-bind:href="csv" v-bind:download="csvName"
+      <a v-if="file" :href="csv" :download="csvName"
         ><el-button type="success">Download CSV</el-button></a
       >
     </el-card>
@@ -51,6 +53,7 @@ export default {
   props: {},
   data() {
     return {
+      fileList: [],
       file: null,
       csv: null,
       csvName: null,
@@ -61,19 +64,26 @@ export default {
       console.log(file, fileList);
       this.file = null;
     },
+    handleExceed(files, fileList) {
+      console.log(files, fileList);
+      // this.file = null;
+    },
     async handleChange(file, fileList) {
       console.log(file, fileList);
+      if (fileList.length > 1) {
+        this.fileList = fileList.slice(1);
+      }
       this.file = file;
       this.csvName = file.name.replace(".xlsx", ".csv").replace(".xls", ".csv");
 
       let contentBuffer = await readFileAsync(file.raw);
-      console.log("contentBuffer", contentBuffer);
+      // console.log("contentBuffer", contentBuffer);
       let data = new Uint8Array(contentBuffer);
       let workbook = XLSX.read(data, { type: "array" });
       let csvText = XLSX.utils.sheet_to_csv(
         workbook.Sheets[workbook.SheetNames[0]]
       );
-      console.log(csvText);
+      // console.log(csvText);
       this.csv = "data:text/csv;charset=utf-8," + csvText;
     },
   },
